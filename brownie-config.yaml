@@ -12,7 +12,7 @@ dotenv: .env
 networks:
   default: development
   development:
-    keyhash: '0x0476f9a745b61ea5c0ab224d3a6e4c99f0b02fce4da01143a4f70aa80ae76e8a'
+    keyhash: '0xAA77729D3466CA35AE8D28B3BBAC7CC36A5031EFDC430821C02BC31A238AF445'
     fee: 100000000000000000
   sepolia:
     vrf_coordinator: "0x8103B0A8A00be2DDC778e6e7eaa21791Cd364625"

@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@chainlink/contracts/src/v0.6/VRFConsumerBase.sol";
 
 contract AdvanceCollectible is ERC721, VRFConsumerBase {
-    uint256 tokenCounter;
+    uint256 public tokenCounter;
     bytes32 keyHash;
     uint256 fee;
     enum Breed {

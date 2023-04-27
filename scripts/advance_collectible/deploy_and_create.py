@@ -23,6 +23,7 @@ def deploy_and_create():
     tx = advance_collectible.createCollectible({"from": account})
     tx.wait(1)
     print("Successfully created....")
+    return advance_collectible
 
 
 def main():

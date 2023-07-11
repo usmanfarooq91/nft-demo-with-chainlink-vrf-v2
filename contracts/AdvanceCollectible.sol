@@ -1,51 +1,63 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.6.0;
+pragma solidity ^0.8.7;
 
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "@chainlink/contracts/src/v0.6/VRFConsumerBase.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
+import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
+import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
 
-contract AdvanceCollectible is ERC721, VRFConsumerBase {
+contract AdvanceCollectible is ERC721URIStorage, VRFConsumerBaseV2 {
     uint256 public tokenCounter;
-    bytes32 keyHash;
-    uint256 fee;
+    bytes32 private immutable keyHash;
+    uint64 private immutable s_subscriptionId;
+    uint32 private immutable callbackGasLimit;
+    uint16 private constant requestConfirmations = 3;
+    uint32 private constant numWords = 1;
+
+    VRFCoordinatorV2Interface private immutable i_vrfCoordinator;
+
     enum Breed {
         PUG,
         SHIBA,
         BARNARD
     }
     mapping(uint256 => Breed) public tokenIdToBreed;
-    mapping(bytes32 => address) public requestIdToSender;
+    mapping(uint256 => address) public requestIdToSender;
 
-    event requestedCollectible(bytes32 indexed requestId, address requester);
+    event requestedCollectible(uint256 indexed requestId, address requester);
     event breedAssigned(uint256 indexed tokenId, Breed breed);
 
     constructor(
+        uint32 _callbackGasLimit,
         address _vrfCoordinator,
-        address _linkToken,
         bytes32 _keyHash,
-        uint256 _fee
-    )
-        public
-        VRFConsumerBase(_vrfCoordinator, _linkToken)
-        ERC721("Robo Dog", "RBDG")
-    {
+        uint64 subscriptionId
+    ) VRFConsumerBaseV2(_vrfCoordinator) ERC721("Robo Dog", "RBDG") {
+        callbackGasLimit = _callbackGasLimit;
+        s_subscriptionId = subscriptionId;
         tokenCounter = 0;
         keyHash = _keyHash;
-        fee = _fee;
+        i_vrfCoordinator = VRFCoordinatorV2Interface(_vrfCoordinator);
     }
 
-    function createCollectible() public returns (bytes32) {
-        bytes32 requestId = requestRandomness(keyHash, fee);
+    function createCollectible() public returns (uint256 requestId) {
+        requestId = i_vrfCoordinator.requestRandomWords(
+            keyHash,
+            s_subscriptionId,
+            requestConfirmations,
+            callbackGasLimit,
+            numWords
+        );
         requestIdToSender[requestId] = msg.sender;
         emit requestedCollectible(requestId, msg.sender);
+        return requestId;
     }
 
-    function fulfillRandomness(
-        bytes32 requestId,
-        uint256 randomNumber
+    function fulfillRandomWords(
+        uint256 requestId,
+        uint256[] memory randomNumber
     ) internal override {
-        Breed breed = Breed(randomNumber % 3);
+        Breed breed = Breed(randomNumber[0] % 3);
         uint256 newTokenId = tokenCounter;
         tokenIdToBreed[newTokenId] = breed;
         emit breedAssigned(newTokenId, breed);
